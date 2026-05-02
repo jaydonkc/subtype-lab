@@ -1,0 +1,10 @@
+{
+  "name": "Run analysis engine tests",
+  "description": "Runs deterministic backend tests when analysis-engine files change.",
+  "trigger": {
+    "type": "fileChange",
+    "patterns": ["packages/analysis-engine/**/*.py"]
+  },
+  "command": "PYTHONPATH=packages/analysis-engine pytest packages/analysis-engine/tests",
+  "blocking": true
+}

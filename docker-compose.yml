@@ -1,0 +1,34 @@
+services:
+  analysis-engine:
+    build:
+      context: .
+      dockerfile: packages/analysis-engine/Dockerfile
+    ports:
+      - "${ANALYSIS_ENGINE_PORT:-8000}:8000"
+    volumes:
+      - ./artifacts:/artifacts
+    environment:
+      - PYTHONUNBUFFERED=1
+      - ARTIFACT_ROOT=/artifacts
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    ports:
+      - "${WEB_PORT:-3000}:3000"
+    environment:
+      - ANALYSIS_API_PROXY=http://analysis-engine:8000
+    depends_on:
+      - analysis-engine
+
+  kiro-mcp-server:
+    build:
+      context: .
+      dockerfile: packages/kiro-mcp-server/Dockerfile
+    volumes:
+      - ./artifacts:/artifacts
+    environment:
+      - ARTIFACT_ROOT=/artifacts
+    profiles:
+      - mcp

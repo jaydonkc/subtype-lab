@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "subtype-lab": {
+      "command": "python",
+      "args": ["-m", "mcp_server.main"],
+      "cwd": "packages/kiro-mcp-server",
+      "env": {
+        "PYTHONPATH": "../analysis-engine:."
+      }
+    }
+  }
+}

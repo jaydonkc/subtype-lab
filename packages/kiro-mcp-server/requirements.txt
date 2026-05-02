@@ -1,0 +1,4 @@
+mcp>=1.0.0
+pandas>=2.0
+numpy>=1.26
+scipy>=1.11

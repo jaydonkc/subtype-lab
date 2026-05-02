@@ -1,0 +1,10 @@
+{
+  "name": "Validate reproducibility reports",
+  "description": "Validates required report fields and blocks prohibited clinical language.",
+  "trigger": {
+    "type": "fileChange",
+    "patterns": ["artifacts/**/report.json"]
+  },
+  "command": "python3 scripts/validate_report.py artifacts",
+  "blocking": true
+}
