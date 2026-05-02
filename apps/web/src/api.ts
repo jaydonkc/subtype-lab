@@ -1,4 +1,10 @@
-import type { AuditResult, BaselineResult, DatasetDescription, JobStatus } from "./types";
+import type {
+  AuditResult,
+  BaselineResult,
+  DatasetDescription,
+  JobStatus,
+  ReproducibilityReport,
+} from "./types";
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? "";
 
@@ -13,7 +19,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
   if (!response.ok) {
     const body = await response.json().catch(() => ({ detail: response.statusText }));
-    throw new Error(body.detail ?? response.statusText);
+    throw new Error(formatDetail(body.detail ?? response.statusText));
   }
 
   return response.json() as Promise<T>;
@@ -23,22 +29,47 @@ export function loadDemoDataset(): Promise<DatasetDescription> {
   return request<DatasetDescription>("/api/datasets/demo");
 }
 
-export function runBaseline(claimText: string, normalizationVariant: string): Promise<BaselineResult> {
+export async function uploadDataset(file: File, metadataFile?: File | null): Promise<DatasetDescription> {
+  const body = new FormData();
+  body.append("file", file);
+  if (metadataFile) {
+    body.append("metadata_file", metadataFile);
+  }
+  const response = await fetch(`${API_BASE}/api/datasets/upload`, {
+    method: "POST",
+    body,
+  });
+  if (!response.ok) {
+    const payload = await response.json().catch(() => ({ detail: response.statusText }));
+    throw new Error(formatDetail(payload.detail ?? response.statusText));
+  }
+  return response.json() as Promise<DatasetDescription>;
+}
+
+export function runBaseline(
+  datasetId: string,
+  claimText: string,
+  normalizationVariant: string,
+): Promise<BaselineResult> {
   return request<BaselineResult>("/api/baseline", {
     method: "POST",
     body: JSON.stringify({
-      dataset_id: "demo",
+      dataset_id: datasetId,
       claim_text: claimText,
       normalization_variant: normalizationVariant,
     }),
   });
 }
 
-export function startAudit(claimText: string, normalizationVariant: string): Promise<{ job_id: string; state: string }> {
+export function startAudit(
+  datasetId: string,
+  claimText: string,
+  normalizationVariant: string,
+): Promise<{ job_id: string; state: string }> {
   return request("/api/jobs/audit", {
     method: "POST",
     body: JSON.stringify({
-      dataset_id: "demo",
+      dataset_id: datasetId,
       claim_text: claimText,
       normalization_variant: normalizationVariant,
     }),
@@ -52,4 +83,21 @@ export function getJobStatus(jobId: string): Promise<JobStatus> {
 export async function getAuditResult(jobId: string): Promise<AuditResult> {
   const payload = await request<{ result: AuditResult }>(`/api/jobs/${jobId}/artifacts`);
   return payload.result;
+}
+
+export function getReport(reportId: string): Promise<ReproducibilityReport> {
+  return request<ReproducibilityReport>(`/api/reports/${reportId}`);
+}
+
+export async function getReportHtml(reportId: string): Promise<string> {
+  const response = await fetch(`${API_BASE}/api/reports/${reportId}/html`);
+  if (!response.ok) {
+    const payload = await response.json().catch(() => ({ detail: response.statusText }));
+    throw new Error(formatDetail(payload.detail ?? response.statusText));
+  }
+  return response.text();
+}
+
+function formatDetail(detail: unknown): string {
+  return typeof detail === "string" ? detail : JSON.stringify(detail);
 }

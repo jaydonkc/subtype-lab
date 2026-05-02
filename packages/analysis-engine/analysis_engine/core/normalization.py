@@ -9,6 +9,8 @@ NORMALIZATION_VARIANTS = ("none", "log2", "z-score", "quantile")
 
 def normalize(df: pd.DataFrame, variant: str) -> pd.DataFrame:
     variant = variant.lower()
+    if variant == "zscore":
+        variant = "z-score"
     if variant not in NORMALIZATION_VARIANTS:
         raise ValueError(f"Unsupported normalization variant: {variant}")
 

@@ -1,12 +1,22 @@
 import { useEffect, useMemo, useState } from "react";
+import type { ReactNode } from "react";
 import {
   getAuditResult,
   getJobStatus,
+  getReport,
+  getReportHtml,
   loadDemoDataset,
   runBaseline,
   startAudit,
+  uploadDataset,
 } from "./api";
-import type { AuditResult, BaselineResult, DatasetDescription, JobStatus } from "./types";
+import type {
+  AuditResult,
+  BaselineResult,
+  DatasetDescription,
+  JobStatus,
+  ReproducibilityReport,
+} from "./types";
 
 const CLAIMS = [
   "These samples form three stable subtypes.",
@@ -15,6 +25,14 @@ const CLAIMS = [
 ];
 
 const NORMALIZATIONS = ["z-score", "log2", "quantile", "none"];
+const PROHIBITED_TERMS = [
+  "diagnostic",
+  "clinically proven",
+  "clinical validation",
+  "FDA approved",
+  "patient diagnosis",
+  "treatment recommendation",
+];
 
 export function App() {
   const [dataset, setDataset] = useState<DatasetDescription | null>(null);
@@ -23,6 +41,9 @@ export function App() {
   const [baseline, setBaseline] = useState<BaselineResult | null>(null);
   const [status, setStatus] = useState<JobStatus | null>(null);
   const [audit, setAudit] = useState<AuditResult | null>(null);
+  const [report, setReport] = useState<ReproducibilityReport | null>(null);
+  const [expressionFile, setExpressionFile] = useState<File | null>(null);
+  const [metadataFile, setMetadataFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -61,6 +82,9 @@ export function App() {
     setLoading(true);
     try {
       setDataset(await loadDemoDataset());
+      setBaseline(null);
+      setAudit(null);
+      setReport(null);
     } catch (err) {
       setError(errorMessage(err));
     } finally {
@@ -68,13 +92,43 @@ export function App() {
     }
   }
 
+  async function handleUpload() {
+    if (!expressionFile) {
+      setError("Choose a CSV or TSV expression matrix before uploading.");
+      return;
+    }
+    setError(null);
+    setLoading(true);
+    try {
+      setDataset(await uploadDataset(expressionFile, metadataFile));
+      setBaseline(null);
+      setAudit(null);
+      setReport(null);
+      setStatus(null);
+    } catch (err) {
+      setError(errorMessage(err));
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function assertAllowedClaim() {
+    const lower = claim.toLowerCase();
+    const matches = PROHIBITED_TERMS.filter((term) => lower.includes(term.toLowerCase()));
+    if (matches.length) {
+      throw new Error(`Clinical interpretation language is not supported: ${matches.join(", ")}.`);
+    }
+  }
+
   async function handleBaseline() {
     setError(null);
     setAudit(null);
+    setReport(null);
     setStatus(null);
     setLoading(true);
     try {
-      setBaseline(await runBaseline(claim, normalization));
+      assertAllowedClaim();
+      setBaseline(await runBaseline(dataset?.dataset_id ?? "demo", claim, normalization));
     } catch (err) {
       setError(errorMessage(err));
     } finally {
@@ -85,9 +139,11 @@ export function App() {
   async function handleAudit() {
     setError(null);
     setAudit(null);
+    setReport(null);
     setLoading(true);
     try {
-      const job = await startAudit(claim, normalization);
+      assertAllowedClaim();
+      const job = await startAudit(dataset?.dataset_id ?? "demo", claim, normalization);
       setStatus({
         job_id: job.job_id,
         state: "queued",
@@ -101,6 +157,31 @@ export function App() {
       setError(errorMessage(err));
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleFetchReport() {
+    const reportId = audit?.report.report_id;
+    if (!reportId) return;
+    setError(null);
+    try {
+      const nextReport = await getReport(reportId);
+      setReport(nextReport);
+      downloadJson(`${reportId}.json`, nextReport);
+    } catch (err) {
+      setError(errorMessage(err));
+    }
+  }
+
+  async function handleFetchHtmlReport() {
+    const reportId = audit?.report.report_id;
+    if (!reportId) return;
+    setError(null);
+    try {
+      const html = await getReportHtml(reportId);
+      downloadText(`${reportId}.html`, html, "text/html");
+    } catch (err) {
+      setError(errorMessage(err));
     }
   }
 
@@ -125,6 +206,27 @@ export function App() {
           <button className="primary-action" disabled={loading} onClick={handleLoadDemo}>
             Load synthetic demo dataset
           </button>
+          <div className="upload-box">
+            <label>
+              <span>Expression matrix</span>
+              <input
+                type="file"
+                accept=".csv,.tsv,.tab,text/csv,text/tab-separated-values"
+                onChange={(event) => setExpressionFile(event.target.files?.[0] ?? null)}
+              />
+            </label>
+            <label>
+              <span>Metadata optional</span>
+              <input
+                type="file"
+                accept=".csv,.tsv,.tab,text/csv,text/tab-separated-values"
+                onChange={(event) => setMetadataFile(event.target.files?.[0] ?? null)}
+              />
+            </label>
+            <button disabled={loading || !expressionFile} onClick={handleUpload}>
+              Upload dataset
+            </button>
+          </div>
           {dataset && (
             <>
               <div className="metric-grid">
@@ -133,6 +235,12 @@ export function App() {
                 <Metric label="Missing" value={`${dataset.quality.missing_value_percentage.toFixed(1)}%`} />
               </div>
               <p className="hash-line">Dataset hash: {dataset.dataset_hash.slice(0, 18)}...</p>
+              {dataset.metadata && (
+                <p className="hash-line">
+                  Metadata: {dataset.metadata.index.length} samples with {dataset.metadata.columns.length} fields.
+                </p>
+              )}
+              <QualityDetails quality={dataset.quality} />
               <MiniHeatmap dataset={dataset} />
             </>
           )}
@@ -185,6 +293,7 @@ export function App() {
                 <Metric label="WCSS" value={baseline.wcss.toFixed(1)} />
               </div>
               <ScatterPlot rows={baseline.pca} />
+              <ResultHeatmap heatmap={baseline.heatmap} />
               <BiomarkerTable biomarkers={baseline.top_biomarkers} compact />
             </>
           ) : (
@@ -222,6 +331,15 @@ export function App() {
               {audit.report.paths?.json && (
                 <p className="hash-line">Report: {audit.report.paths.json}</p>
               )}
+              {audit.report.report_id && (
+                <div className="button-row">
+                  <button onClick={handleFetchReport}>Download report JSON</button>
+                  <button onClick={handleFetchHtmlReport}>Download report HTML</button>
+                </div>
+              )}
+              {report && (
+                <p className="hash-line">Downloaded report {report.report_id} with verdict {report.claim_verdict}.</p>
+              )}
             </>
           ) : (
             <p className="placeholder">Run the audit to see which parts of the claim survive stress tests.</p>
@@ -232,7 +350,70 @@ export function App() {
   );
 }
 
-function Panel({ title, children }: { title: string; children: React.ReactNode }) {
+function ResultHeatmap({ heatmap }: { heatmap?: BaselineResult["heatmap"] }) {
+  if (!heatmap || !heatmap.values.length) {
+    return <p className="placeholder">No heatmap data returned.</p>;
+  }
+  const rows = heatmap.values.slice(0, 30);
+  const flat = rows.flat();
+  const min = Math.min(...flat);
+  const max = Math.max(...flat);
+  return (
+    <div
+      className="result-heatmap"
+      aria-label="Top variable feature heatmap"
+      style={{ gridTemplateColumns: `repeat(${rows[0]?.length ?? 1}, minmax(2px, 1fr))` }}
+    >
+      {rows.flatMap((row, rowIndex) =>
+        row.map((value, colIndex) => {
+          const t = (value - min) / Math.max(0.0001, max - min);
+          return (
+            <span
+              key={`${rowIndex}-${colIndex}`}
+              title={`${heatmap.features[rowIndex]} / ${heatmap.samples[colIndex]}: ${value.toFixed(2)}`}
+              style={{
+                backgroundColor: `rgb(${Math.round(30 + t * 210)}, ${Math.round(65 + t * 110)}, ${Math.round(145 - t * 70)})`,
+              }}
+            />
+          );
+        }),
+      )}
+    </div>
+  );
+}
+
+function QualityDetails({ quality }: { quality: DatasetDescription["quality"] }) {
+  const topWarnings = quality.warnings.slice(0, 3);
+  const topFeatures = quality.feature_summaries
+    .slice()
+    .sort((a, b) => b.zero_value_percentage - a.zero_value_percentage || a.std - b.std)
+    .slice(0, 4);
+
+  return (
+    <div className="quality-block">
+      {topWarnings.length > 0 ? (
+        topWarnings.map((warning) => (
+          <p className="warning-line" key={warning}>
+            {warning}
+          </p>
+        ))
+      ) : (
+        <p className="hash-line">No high-missingness or low-variation warnings detected.</p>
+      )}
+      <div className="feature-summary-grid">
+        {topFeatures.map((feature) => (
+          <div key={feature.feature}>
+            <strong>{feature.feature}</strong>
+            <span>std {feature.std.toFixed(2)}</span>
+            <span>zero {feature.zero_value_percentage.toFixed(0)}%</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function Panel({ title, children }: { title: string; children: ReactNode }) {
   return (
     <section className="panel">
       <h2>{title}</h2>
@@ -349,4 +530,20 @@ function BiomarkerTable({ biomarkers, compact = false }: { biomarkers: Array<{ f
 
 function errorMessage(error: unknown) {
   return error instanceof Error ? error.message : "Unexpected error";
+}
+
+function downloadJson(filename: string, data: unknown) {
+  downloadText(filename, JSON.stringify(data, null, 2), "application/json");
+}
+
+function downloadText(filename: string, content: string, type: string) {
+  const blob = new Blob([content], { type });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = filename;
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  URL.revokeObjectURL(url);
 }

@@ -10,6 +10,7 @@ if str(ENGINE_PATH) not in sys.path:
     sys.path.insert(0, str(ENGINE_PATH))
 
 from analysis_engine.core.claim import parse_claim  # noqa: E402
+from analysis_engine.core.dataset import compute_quality_metrics, parse_dataset  # noqa: E402
 from analysis_engine.core.normalization import normalize  # noqa: E402
 from analysis_engine.services import DatasetRegistry, run_baseline_analysis, run_claim_audit  # noqa: E402
 
@@ -17,7 +18,22 @@ from analysis_engine.services import DatasetRegistry, run_baseline_analysis, run
 _datasets = DatasetRegistry()
 
 
-def inspect_dataset(dataset_id: str = "demo") -> dict[str, Any]:
+def inspect_dataset(dataset_id: str = "demo", file_path: str | None = None) -> dict[str, Any]:
+    if file_path:
+        path = Path(file_path)
+        record = parse_dataset(path.read_bytes(), path.name)
+        quality = compute_quality_metrics(record.matrix)
+        return {
+            "dataset_id": record.dataset_id,
+            "dataset_hash": record.dataset_hash,
+            "quality": {
+                "sample_count": quality.sample_count,
+                "feature_count": quality.feature_count,
+                "missing_value_count": quality.missing_value_count,
+                "missing_value_percentage": quality.missing_value_percentage,
+                "warnings": quality.warnings,
+            },
+        }
     return _datasets.describe(dataset_id)
 
 

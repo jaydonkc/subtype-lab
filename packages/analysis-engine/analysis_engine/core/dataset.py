@@ -47,6 +47,8 @@ def parse_dataset(file_bytes: bytes, filename: str) -> DatasetRecord:
     else:
         df.index = [f"S{i + 1:03d}" for i in range(len(df))]
 
+    df.index = df.index.map(str)
+    df.columns = df.columns.map(str)
     df = df.apply(pd.to_numeric, errors="coerce")
     validate_dataset(df)
     dataset_hash = compute_dataset_hash(file_bytes)
@@ -60,7 +62,36 @@ def parse_metadata(file_bytes: bytes, filename: str) -> pd.DataFrame:
         raise ValueError("Metadata file is empty.")
     if "sample_id" in metadata.columns:
         metadata = metadata.set_index("sample_id")
+    else:
+        first_col = str(metadata.columns[0]).lower()
+        if first_col in {"sample", "id", "index"}:
+            metadata = metadata.set_index(metadata.columns[0])
+    metadata.index = metadata.index.map(str)
     return metadata
+
+
+def attach_metadata(record: DatasetRecord, metadata: pd.DataFrame) -> DatasetRecord:
+    matrix_index = record.matrix.index.map(str)
+    metadata = metadata.copy()
+    metadata.index = metadata.index.map(str)
+
+    if set(matrix_index).issubset(set(metadata.index)):
+        aligned = metadata.loc[matrix_index]
+    elif len(metadata) == len(record.matrix):
+        aligned = metadata.copy()
+        aligned.index = matrix_index
+    else:
+        missing = [sample_id for sample_id in matrix_index if sample_id not in set(metadata.index)]
+        preview = ", ".join(missing[:5])
+        raise ValueError(f"Metadata does not align to dataset samples. Missing sample IDs: {preview}.")
+
+    return DatasetRecord(
+        dataset_id=record.dataset_id,
+        dataset_hash=record.dataset_hash,
+        matrix=record.matrix,
+        metadata=aligned,
+        warnings=record.warnings,
+    )
 
 
 def validate_dataset(df: pd.DataFrame) -> None:

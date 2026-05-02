@@ -14,8 +14,9 @@ from .core.dataset import DatasetRecord, compute_quality_metrics, dataframe_payl
 from .core.demo_data import generate_demo_dataset
 from .core.normalization import normalize
 from .core.perturbation import run_perturbation_suite
-from .core.report import generate_report
+from .core.report import find_report, find_report_html, generate_report
 from .core.verdict import compute_verdict
+from .core.visualization import heatmap_payload
 
 
 ARTIFACT_ROOT = Path(os.environ.get("ARTIFACT_ROOT", Path.cwd() / "artifacts"))
@@ -71,6 +72,7 @@ def run_baseline_analysis(
         "wcss": cluster.wcss,
         "silhouette_score": cluster.silhouette_score,
         "pca": cluster.pca,
+        "heatmap": heatmap_payload(normalized, labels),
         "top_biomarkers": [asdict(item) for item in biomarkers],
     }
 
@@ -103,6 +105,11 @@ def run_claim_audit(
     warnings = []
     if verdict != "robust":
         warnings.append(f"Lowest consistency came from {weakest}. Review this before trusting the claim.")
+    one_run_count = sum(1 for item in biomarkers if item.one_run_artifact)
+    if one_run_count:
+        warnings.append(
+            f"{one_run_count} of the top {len(biomarkers)} candidate biomarkers behaved like one-run artifacts."
+        )
 
     result = {
         **baseline,
@@ -125,3 +132,11 @@ def run_claim_audit(
     report = generate_report(result, ARTIFACT_ROOT)
     result["report"] = report
     return result
+
+
+def get_report(report_id: str) -> dict:
+    return find_report(ARTIFACT_ROOT, report_id)
+
+
+def get_report_html(report_id: str) -> str:
+    return find_report_html(ARTIFACT_ROOT, report_id)

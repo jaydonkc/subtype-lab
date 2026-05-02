@@ -21,6 +21,7 @@ def generate_report(audit_result: dict[str, Any], output_root: Path) -> dict[str
         raise ValueError(f"Cannot generate report; missing fields: {', '.join(missing)}")
 
     report = {
+        "report_id": _report_id(audit_result),
         "generated_at": datetime.now(UTC).isoformat(),
         "disclaimer": DISCLAIMER,
         "dataset_hash": audit_result["dataset_hash"],
@@ -67,6 +68,34 @@ def validate_report(report: dict[str, Any]) -> None:
     prohibited = find_prohibited_terms(text)
     if prohibited:
         raise ValueError(f"Report contains prohibited terms: {', '.join(prohibited)}")
+
+
+def find_report(output_root: Path, report_id: str) -> dict[str, Any]:
+    for path in output_root.rglob("report.json"):
+        try:
+            report = json.loads(path.read_text(encoding="utf-8"))
+        except json.JSONDecodeError:
+            continue
+        if report.get("report_id") == report_id:
+            report["paths"] = {
+                "json": str(path),
+                "html": str(path.with_name("report.html")),
+            }
+            return report
+    raise FileNotFoundError(f"Unknown report_id: {report_id}")
+
+
+def find_report_html(output_root: Path, report_id: str) -> str:
+    report = find_report(output_root, report_id)
+    html_path = Path(report["paths"]["html"])
+    if not html_path.exists():
+        raise FileNotFoundError(f"Report HTML is missing for report_id: {report_id}")
+    return html_path.read_text(encoding="utf-8")
+
+
+def _report_id(audit_result: dict[str, Any]) -> str:
+    timestamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
+    return f"{str(audit_result['dataset_hash'])[:12]}-{timestamp}"
 
 
 def _report_html(report: dict[str, Any]) -> str:

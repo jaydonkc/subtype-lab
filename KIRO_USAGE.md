@@ -1,0 +1,91 @@
+# How SubtypeLab Uses Kiro
+
+SubtypeLab uses Kiro as the workflow-control layer for a deterministic bioinformatics application. Kiro is not used to invent biological conclusions. Instead, Kiro helps specify, enforce, and operate a reproducible claim-auditing workflow.
+
+## Vibe Coding
+
+The project started from a narrow product question:
+
+> Can we build a crash-test lab for cancer subtype and biomarker claims?
+
+The early Kiro conversations were structured around a small demo path: load synthetic expression data, enter a subtype claim, run baseline clustering, run perturbation stress tests, and produce a robust / suspicious / fragile verdict. Later iterations deliberately pushed the project beyond "agent with extra prompting" by adding uploaded datasets, optional metadata alignment, quality warnings, deterministic report artifacts, and MCP tools that call the same analysis engine as the web app.
+
+The most useful generated code was the first full-stack scaffold: FastAPI analysis service, React/Vite UI, deterministic analysis modules, and local artifact/report generation.
+
+## Spec-Driven Development
+
+The `.kiro/specs/subtype-lab/` directory contains:
+
+- `requirements.md`
+- `design.md`
+- `tasks.md`
+
+The requirements define testable behavior around dataset loading, quality metrics, claim parsing, baseline analysis, perturbation audits, verdict thresholds, biomarker ranking, report generation, MCP tools, hooks, and local setup.
+
+Compared with pure vibe coding, the spec forced clearer boundaries:
+
+- verdicts must come from computed metrics
+- demo data must be synthetic and deterministic
+- audit jobs must expose progress
+- uploaded metadata must align to sample IDs or fail clearly
+- reports must include reproducibility evidence
+- clinical language must be blocked
+
+## Steering Docs
+
+The steering docs live in `.kiro/steering/`:
+
+- `product.md`
+- `tech.md`
+- `scientific-guardrails.md`
+- `reproducibility.md`
+
+The most important strategy was separating product ambition from scientific authority. The steering docs repeatedly tell Kiro:
+
+- do not invent biomarker claims
+- do not present demo results as validated biology
+- deterministic tools own normalization, clustering, perturbations, scoring, and verdicts
+- reports must include dataset hash, parameters, perturbation scores, and artifact paths
+- the tool is for research support only
+
+This made Kiro more useful because it generated code and documentation around a reproducible workflow instead of overclaiming biology.
+
+## Agent Hooks
+
+The repo includes Kiro hook configs under `.kiro/hooks/`:
+
+- `run-analysis-tests.json`
+- `validate-report.json`
+
+The intended workflow:
+
+- When analysis engine files change, Kiro runs the backend test suite.
+- When report artifacts change, Kiro validates required report fields and checks for prohibited clinical language.
+
+These hooks turn the scientific guardrails into executable workflow checks. They are important because the core risk in a bioinformatics AI project is not syntax; it is unsupported interpretation.
+
+## MCP
+
+The local MCP server lives in `packages/kiro-mcp-server/` and is configured in `.kiro/settings/mcp.json`.
+
+It exposes deterministic tools:
+
+- `inspect_dataset`
+- `run_normalization`
+- `run_subtyping`
+- `run_perturbation_suite`
+- `rank_robust_biomarkers`
+- `audit_biological_claim`
+- `generate_reproducibility_report`
+
+MCP is the key Kiro feature for this project. It lets Kiro call real bioinformatics functions instead of producing freeform analysis prose. For example, Kiro can inspect the synthetic demo dataset or a local CSV/TSV file path, run deterministic subtyping, execute the perturbation suite, rank biomarkers, and generate reports. This makes the system auditable: Kiro can orchestrate and explain, but the verdict comes from code.
+
+## Kiro Powers
+
+No third-party Kiro Power is required for the MVP. A future extension would package the steering docs, hooks, MCP settings, and spec templates into a reusable BioKiro Power for other bioinformatics repositories.
+
+## Why This Is Kiro-Native
+
+SubtypeLab is not just an app that was written with an AI assistant. The repo keeps Kiro artifacts at the root, uses Kiro specs as the implementation contract, uses steering docs to constrain scientific behavior, uses hooks for report/test validation, and exposes deterministic tools through MCP.
+
+The final product is a working web app, but the development workflow is intentionally Kiro-shaped.

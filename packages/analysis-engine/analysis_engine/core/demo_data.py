@@ -29,7 +29,7 @@ def generate_demo_dataset(seed: int = DEMO_SEED) -> DemoDataset:
     n_subtypes = 3
     samples_per_subtype = 30
     n_samples = n_subtypes * samples_per_subtype
-    n_features = 210
+    n_features = 300
 
     labels = np.repeat(np.arange(n_subtypes), samples_per_subtype)
     sample_ids = [f"S{i + 1:03d}" for i in range(n_samples)]
@@ -37,24 +37,25 @@ def generate_demo_dataset(seed: int = DEMO_SEED) -> DemoDataset:
 
     matrix = rng.normal(loc=0.0, scale=0.55, size=(n_samples, n_features))
 
-    # Robust subtype signal: each subtype owns a distinct 35-gene block.
+    # Robust subtype signal: each subtype owns a distinct 55-gene block.
     for subtype in range(n_subtypes):
         rows = labels == subtype
-        start = subtype * 35
-        end = start + 35
+        start = subtype * 55
+        end = start + 55
         matrix[rows, start:end] += 4.2
 
     # Fragile biomarker-looking signal: smaller effect, intentionally sensitive
     # to feature dropout and noise.
     for subtype in range(n_subtypes):
         rows = labels == subtype
-        start = 105 + subtype * 10
-        end = start + 10
+        start = 165 + subtype * 15
+        end = start + 15
         matrix[rows, start:end] += 1.15
 
-    batch_labels = np.where(np.arange(n_samples) % 2 == 0, "batch_1", "batch_2")
-    batch_shift_features = slice(150, 180)
+    batch_labels = np.array([f"batch_{(i % 3) + 1}" for i in range(n_samples)])
+    batch_shift_features = slice(240, 270)
     matrix[batch_labels == "batch_2", batch_shift_features] += 0.45
+    matrix[batch_labels == "batch_3", batch_shift_features] -= 0.35
 
     df = pd.DataFrame(matrix, index=sample_ids, columns=feature_names)
     metadata = pd.DataFrame(
@@ -74,3 +75,14 @@ def generate_demo_dataset(seed: int = DEMO_SEED) -> DemoDataset:
         matrix=df,
         metadata=metadata,
     )
+
+
+def save_demo_data(output_dir: str | "Path", seed: int = DEMO_SEED) -> DemoDataset:
+    from pathlib import Path
+
+    demo = generate_demo_dataset(seed)
+    path = Path(output_dir)
+    path.mkdir(parents=True, exist_ok=True)
+    demo.matrix.to_csv(path / "expression.csv", index_label="sample_id")
+    demo.metadata.to_csv(path / "metadata.csv", index_label="sample_id")
+    return demo

@@ -3,6 +3,12 @@ export type QualityMetrics = {
   feature_count: number;
   missing_value_count: number;
   missing_value_percentage: number;
+  feature_summaries: Array<{
+    feature: string;
+    mean: number;
+    std: number;
+    zero_value_percentage: number;
+  }>;
   warnings: string[];
 };
 
@@ -15,6 +21,11 @@ export type DatasetDescription = {
     columns: string[];
     values: number[][];
   };
+  metadata?: {
+    index: string[];
+    columns: string[];
+    values: Array<Array<string | number | null>>;
+  } | null;
 };
 
 export type BaselineResult = {
@@ -28,6 +39,12 @@ export type BaselineResult = {
   wcss: number;
   silhouette_score: number;
   pca: Array<{ sample_id: string; pc1: number; pc2: number; cluster: number }>;
+  heatmap: {
+    samples: string[];
+    features: string[];
+    values: number[][];
+    clusters: number[];
+  };
   top_biomarkers: BiomarkerRank[];
 };
 
@@ -55,9 +72,23 @@ export type AuditResult = BaselineResult & {
   warnings: string[];
   biomarkers: BiomarkerRank[];
   report: {
+    report_id?: string;
     paths?: {
       json?: string;
       html?: string;
     };
   };
+};
+
+export type ReproducibilityReport = {
+  report_id: string;
+  generated_at: string;
+  disclaimer: string;
+  dataset_hash: string;
+  claim_text: string;
+  normalization_variant: string;
+  stability_score: number;
+  claim_verdict: string;
+  warnings: string[];
+  top_biomarkers: BiomarkerRank[];
 };

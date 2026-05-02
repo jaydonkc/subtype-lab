@@ -10,8 +10,8 @@ The MVP targets students, small labs, and under-resourced research teams who nee
 
 ### Technology Stack
 
-- **Analysis_Engine**: Python with FastAPI. Scientific computation uses NumPy, SciPy, scikit-learn, and pandas. The engine runs as a local HTTP service.
-- **Web_UI**: React with Vite and TypeScript. Visualization uses Plotly.js or Recharts. The UI is served locally and communicates with the Analysis_Engine over localhost.
+- **Analysis_Engine**: Python with FastAPI. Scientific computation uses deterministic NumPy and pandas implementations. The engine runs as a local HTTP service.
+- **Web_UI**: React with Vite and TypeScript. Visualization uses lightweight SVG/CSS components to minimize dependency and setup risk. The UI is served locally and communicates with the Analysis_Engine over localhost.
 - **MCP_Server**: Python, implemented as a separate entry point that wraps Analysis_Engine functions and exposes them via the Model Context Protocol.
 - **Demo Data**: A fully synthetic gene-expression-style dataset generated at build/startup time. No external datasets or cloud services are required.
 - **Deployment Target**: Local-first. The entire system runs on a developer or researcher's machine. A single command (`docker compose up` or equivalent) starts all services. No cloud dependency is required for the core demo.
@@ -280,4 +280,3 @@ Claim audits run as asynchronous background jobs on the Analysis_Engine. The Web
 3. WHEN a report artifact is validated by the report_validation_hook, THE hook SHALL check for prohibited clinical terms and SHALL fail if any are found.
 4. WHEN the test_hook detects a test failure, THE hook SHALL block the workflow step that triggered the hook and display the failing test output.
 5. THE hooks SHALL be defined as configuration files in the `.kiro/hooks/` directory and SHALL NOT require manual invocation by the developer.
-

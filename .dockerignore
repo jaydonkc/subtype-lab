@@ -1,0 +1,11 @@
+.git
+.DS_Store
+**/__pycache__
+**/*.pyc
+**/.pytest_cache
+**/node_modules
+apps/web/dist
+artifacts/*
+!artifacts/.gitkeep
+demo-data/expression.csv
+demo-data/metadata.csv
