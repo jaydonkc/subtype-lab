@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import numpy as np
+import pytest
 
+from analysis_engine.core.agent_findings import collect_agent_evidence
 from analysis_engine.core.claim import parse_claim, validate_claim_language
 from analysis_engine.core.dataset import DatasetRecord, attach_metadata
 from analysis_engine.core.demo_data import generate_demo_dataset
@@ -107,3 +109,36 @@ def test_perturbation_suite_count_and_determinism() -> None:
     assert [round(run.score, 8) for run in first.runs] == [
         round(run.score, 8) for run in second.runs
     ]
+
+
+def test_agent_findings_skip_pubmed_for_synthetic_demo_markers(monkeypatch: pytest.MonkeyPatch) -> None:
+    def fail_literature_lookup(*_args: object, **_kwargs: object) -> dict:
+        raise AssertionError("synthetic demo features should not call PubMed")
+
+    monkeypatch.setattr("analysis_engine.core.agent_findings.search_literature", fail_literature_lookup)
+    evidence = collect_agent_evidence(
+        {
+            "claim_text": "These samples form three stable subtypes.",
+            "dataset_id": "demo",
+            "dataset_hash": "hash",
+            "verdict": "robust",
+            "stability_score": 1.0,
+            "per_type_scores": {},
+            "warnings": [],
+            "normalization_variant": "z-score",
+            "subtype_count": 3,
+            "biomarkers": [
+                {
+                    "feature": "GENE_001",
+                    "robustness_score": 0.9,
+                    "baseline_score": 12.0,
+                    "one_run_artifact": False,
+                }
+            ],
+        },
+        marker_limit=1,
+        literature_limit=1,
+    )
+
+    assert evidence["marker_evidence"][0]["literature"]["status"] == "demo_only"
+    assert evidence["marker_evidence"][0]["literature"]["evidence_level"] == "demo_synthetic"

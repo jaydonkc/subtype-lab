@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 from typing import Any
 from urllib.request import Request, urlopen
 
@@ -91,7 +92,7 @@ def collect_agent_evidence(
         feature = str(marker.get("feature", ""))
         if not feature:
             continue
-        literature = search_literature(feature, context, literature_limit)
+        literature = synthetic_marker_evidence(feature) if is_synthetic_demo_marker(feature) else search_literature(feature, context, literature_limit)
         marker_evidence.append(
             {
                 "feature": feature,
@@ -252,6 +253,7 @@ def research_gap_score(marker: dict[str, Any], literature: dict[str, Any]) -> in
         "sparse": 0.75,
         "emerging": 0.45,
         "known": 0.15,
+        "demo_synthetic": 0.20,
         "unavailable": 0.35,
     }.get(literature_level, 0.35)
     score = max(0.0, min(1.0, (0.6 * robustness) + (0.4 * novelty) - artifact_penalty))
@@ -274,6 +276,20 @@ def context_from_claim(claim_text: str) -> str:
     if "biomarker" in lower:
         return "cancer biomarker"
     return DEFAULT_CONTEXT
+
+
+def is_synthetic_demo_marker(feature: str) -> bool:
+    return bool(re.fullmatch(r"GENE_\d{3}", feature))
+
+
+def synthetic_marker_evidence(feature: str) -> dict[str, Any]:
+    return {
+        "status": "demo_only",
+        "evidence_level": "demo_synthetic",
+        "total_hits": 0,
+        "summary": f"{feature} is a synthetic demo feature, so public-literature lookup is intentionally skipped.",
+        "hits": [],
+    }
 
 
 def guardrails() -> list[str]:
