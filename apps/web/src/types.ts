@@ -92,3 +92,24 @@ export type ReproducibilityReport = {
   warnings: string[];
   top_biomarkers: BiomarkerRank[];
 };
+
+export type LiteratureEvidence = {
+  marker: string;
+  context: string;
+  query: string;
+  source: string;
+  status: "ok" | "unavailable";
+  evidence_level: "known" | "emerging" | "sparse" | "underexplored" | "unavailable";
+  total_hits: number;
+  works_examined: number;
+  summary: string;
+  caveats: string[];
+  hits: Array<{
+    title: string;
+    journal: string;
+    year: string;
+    authors: string[];
+    url: string;
+    source: string;
+  }>;
+};

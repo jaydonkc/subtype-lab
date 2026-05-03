@@ -3,6 +3,7 @@ import type {
   BaselineResult,
   DatasetDescription,
   JobStatus,
+  LiteratureEvidence,
   ReproducibilityReport,
 } from "./types";
 
@@ -87,6 +88,21 @@ export async function getAuditResult(jobId: string): Promise<AuditResult> {
 
 export function getReport(reportId: string): Promise<ReproducibilityReport> {
   return request<ReproducibilityReport>(`/api/reports/${reportId}`);
+}
+
+export function getLiteratureEvidence(
+  marker: string,
+  context: string,
+  limit = 5,
+): Promise<LiteratureEvidence> {
+  return request<LiteratureEvidence>("/api/literature/evidence", {
+    method: "POST",
+    body: JSON.stringify({
+      marker,
+      context,
+      limit,
+    }),
+  });
 }
 
 export async function getReportHtml(reportId: string): Promise<string> {

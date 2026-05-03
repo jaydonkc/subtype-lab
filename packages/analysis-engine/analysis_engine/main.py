@@ -11,6 +11,7 @@ from pydantic import BaseModel, Field
 from .core.claim import find_prohibited_terms, parse_claim
 from .core.dataset import attach_metadata, compute_quality_metrics, parse_dataset, parse_metadata
 from .core.demo_data import save_demo_data
+from .core.literature import search_literature
 from .jobs.executor import AuditExecutor
 from .jobs.store import JobStore
 from .services import DatasetRegistry, get_report, get_report_html, run_baseline_analysis
@@ -45,6 +46,12 @@ class ClaimRequest(BaseModel):
 
 class ReportRequest(BaseModel):
     job_id: str
+
+
+class LiteratureRequest(BaseModel):
+    marker: str
+    context: str = "cancer subtype biomarker"
+    limit: int = Field(default=5, ge=1, le=10)
 
 
 @app.get("/healthz")
@@ -140,6 +147,19 @@ def baseline(request: ClaimRequest) -> dict:
 @app.post("/analysis/baseline")
 def baseline_alias(request: ClaimRequest) -> dict:
     return baseline(request)
+
+
+@app.post("/api/literature/evidence")
+def literature_evidence(request: LiteratureRequest) -> dict:
+    try:
+        return search_literature(request.marker, request.context, request.limit)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@app.post("/literature/evidence")
+def literature_evidence_alias(request: LiteratureRequest) -> dict:
+    return literature_evidence(request)
 
 
 @app.post("/api/jobs/audit", status_code=202)

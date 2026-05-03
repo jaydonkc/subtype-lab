@@ -15,6 +15,7 @@ body {
 }
 
 button,
+input,
 select,
 textarea {
   font: inherit;
@@ -35,6 +36,7 @@ button:disabled {
 }
 
 textarea,
+input,
 select {
   width: 100%;
   border: 1px solid #bdc9d1;
@@ -385,6 +387,68 @@ th {
   font-weight: 800;
 }
 
+.table-action {
+  padding: 0.35rem 0.55rem;
+  font-size: 12px;
+}
+
+.literature-form {
+  display: grid;
+  grid-template-columns: minmax(120px, 0.8fr) minmax(180px, 1.2fr) auto;
+  gap: 10px;
+  align-items: end;
+}
+
+.literature-form label {
+  display: block;
+  min-width: 0;
+}
+
+.literature-form span {
+  display: block;
+  margin-bottom: 6px;
+  color: #3e4b54;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.literature-card {
+  margin-top: 12px;
+}
+
+.literature-hits {
+  display: grid;
+  gap: 8px;
+  margin: 12px 0;
+}
+
+.literature-hits a {
+  display: block;
+  border: 1px solid #dde6eb;
+  border-radius: 7px;
+  padding: 10px;
+  color: #172026;
+  text-decoration: none;
+  background: #f8fbfc;
+}
+
+.literature-hits strong,
+.literature-hits span {
+  display: block;
+  overflow-wrap: anywhere;
+}
+
+.literature-hits strong {
+  font-size: 13px;
+  margin-bottom: 5px;
+}
+
+.literature-hits span {
+  color: #60717b;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
 @media (max-width: 900px) {
   .masthead,
   .workflow-grid,
@@ -402,7 +466,8 @@ th {
   }
 
   .upload-box,
-  .feature-summary-grid {
+  .feature-summary-grid,
+  .literature-form {
     grid-template-columns: 1fr;
   }
 }

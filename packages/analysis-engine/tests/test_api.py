@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from fastapi.testclient import TestClient
+import pytest
 import time
 
 from analysis_engine.core.demo_data import generate_demo_dataset
@@ -100,3 +101,45 @@ def test_claim_guardrail_endpoint() -> None:
 
     assert response.status_code == 400
     assert "Clinical interpretation language" in response.json()["detail"]
+
+
+def test_literature_evidence_endpoint(monkeypatch: pytest.MonkeyPatch) -> None:
+    def fake_search_literature(marker: str, context: str, limit: int) -> dict:
+        assert marker == "TP53"
+        assert context == "cancer subtype biomarker"
+        assert limit == 3
+        return {
+            "marker": marker,
+            "context": context,
+            "query": "TP53[Title/Abstract] AND (cancer subtype biomarker)",
+            "source": "PubMed E-utilities",
+            "status": "ok",
+            "evidence_level": "known",
+            "total_hits": 42,
+            "works_examined": 1,
+            "summary": "TP53 appears frequently in PubMed for this context.",
+            "caveats": ["Literature evidence maps prior mentions."],
+            "hits": [
+                {
+                    "title": "TP53 and cancer subtypes",
+                    "journal": "Example Journal",
+                    "year": "2024",
+                    "authors": ["Researcher A"],
+                    "url": "https://pubmed.ncbi.nlm.nih.gov/123/",
+                    "source": "PubMed",
+                }
+            ],
+        }
+
+    monkeypatch.setattr("analysis_engine.main.search_literature", fake_search_literature)
+
+    response = client.post(
+        "/api/literature/evidence",
+        json={"marker": "TP53", "context": "cancer subtype biomarker", "limit": 3},
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["evidence_level"] == "known"
+    assert payload["total_hits"] == 42
+    assert payload["hits"][0]["url"].startswith("https://pubmed.ncbi.nlm.nih.gov/")

@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import {
   getAuditResult,
   getJobStatus,
+  getLiteratureEvidence,
   getReport,
   getReportHtml,
   loadDemoDataset,
@@ -13,8 +14,10 @@ import {
 import type {
   AuditResult,
   BaselineResult,
+  BiomarkerRank,
   DatasetDescription,
   JobStatus,
+  LiteratureEvidence,
   ReproducibilityReport,
 } from "./types";
 
@@ -44,6 +47,10 @@ export function App() {
   const [report, setReport] = useState<ReproducibilityReport | null>(null);
   const [expressionFile, setExpressionFile] = useState<File | null>(null);
   const [metadataFile, setMetadataFile] = useState<File | null>(null);
+  const [literatureMarker, setLiteratureMarker] = useState("");
+  const [literatureContext, setLiteratureContext] = useState("cancer subtype biomarker");
+  const [literature, setLiterature] = useState<LiteratureEvidence | null>(null);
+  const [literatureLoading, setLiteratureLoading] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -185,6 +192,29 @@ export function App() {
     }
   }
 
+  async function handleLiteratureSearch(markerOverride?: string) {
+    const marker = (markerOverride ?? literatureMarker).trim();
+    if (!marker) {
+      setError("Enter a marker before checking literature evidence.");
+      return;
+    }
+    setError(null);
+    setLiteratureLoading(true);
+    try {
+      const evidence = await getLiteratureEvidence(marker, literatureContext, 5);
+      setLiterature(evidence);
+    } catch (err) {
+      setError(errorMessage(err));
+    } finally {
+      setLiteratureLoading(false);
+    }
+  }
+
+  function handleSelectBiomarker(feature: string) {
+    setLiteratureMarker(feature);
+    void handleLiteratureSearch(feature);
+  }
+
   return (
     <main className="app-shell">
       <section className="masthead">
@@ -294,7 +324,7 @@ export function App() {
               </div>
               <ScatterPlot rows={baseline.pca} />
               <ResultHeatmap heatmap={baseline.heatmap} />
-              <BiomarkerTable biomarkers={baseline.top_biomarkers} compact />
+              <BiomarkerTable biomarkers={baseline.top_biomarkers} compact onSelect={handleSelectBiomarker} />
             </>
           ) : (
             <p className="placeholder">Run a baseline analysis to see the starting subtype structure.</p>
@@ -327,7 +357,7 @@ export function App() {
                 <p key={warning} className="warning-line">{warning}</p>
               ))}
               <ScoreBars scores={audit.per_type_scores} />
-              <BiomarkerTable biomarkers={audit.biomarkers} />
+              <BiomarkerTable biomarkers={audit.biomarkers} onSelect={handleSelectBiomarker} />
               {audit.report.paths?.json && (
                 <p className="hash-line">Report: {audit.report.paths.json}</p>
               )}
@@ -343,6 +373,36 @@ export function App() {
             </>
           ) : (
             <p className="placeholder">Run the audit to see which parts of the claim survive stress tests.</p>
+          )}
+        </Panel>
+
+        <Panel title="Literature Evidence">
+          <div className="literature-form">
+            <label htmlFor="literature-marker">
+              <span>Marker</span>
+              <input
+                id="literature-marker"
+                value={literatureMarker}
+                placeholder="TP53"
+                onChange={(event) => setLiteratureMarker(event.target.value)}
+              />
+            </label>
+            <label htmlFor="literature-context">
+              <span>Context</span>
+              <input
+                id="literature-context"
+                value={literatureContext}
+                onChange={(event) => setLiteratureContext(event.target.value)}
+              />
+            </label>
+            <button disabled={literatureLoading} onClick={() => void handleLiteratureSearch()}>
+              {literatureLoading ? "Checking..." : "Check literature"}
+            </button>
+          </div>
+          {literature ? (
+            <LiteratureEvidenceCard evidence={literature} />
+          ) : (
+            <p className="placeholder">Select a biomarker or enter a marker symbol.</p>
           )}
         </Panel>
       </section>
@@ -502,7 +562,15 @@ function ScoreBars({ scores }: { scores: Record<string, number> }) {
   );
 }
 
-function BiomarkerTable({ biomarkers, compact = false }: { biomarkers: Array<{ feature: string; robustness_score: number; baseline_score: number; one_run_artifact: boolean }>; compact?: boolean }) {
+function BiomarkerTable({
+  biomarkers,
+  compact = false,
+  onSelect,
+}: {
+  biomarkers: BiomarkerRank[];
+  compact?: boolean;
+  onSelect?: (feature: string) => void;
+}) {
   const rows = biomarkers.slice(0, compact ? 8 : 12);
   return (
     <table>
@@ -512,6 +580,7 @@ function BiomarkerTable({ biomarkers, compact = false }: { biomarkers: Array<{ f
           <th>{compact ? "Score" : "Robustness"}</th>
           {!compact && <th>Baseline</th>}
           {!compact && <th>Flag</th>}
+          {onSelect && <th>Evidence</th>}
         </tr>
       </thead>
       <tbody>
@@ -521,10 +590,49 @@ function BiomarkerTable({ biomarkers, compact = false }: { biomarkers: Array<{ f
             <td>{compact ? row.baseline_score.toFixed(2) : row.robustness_score.toFixed(2)}</td>
             {!compact && <td>{row.baseline_score.toFixed(2)}</td>}
             {!compact && <td>{row.one_run_artifact ? "one-run artifact" : "stable"}</td>}
+            {onSelect && (
+              <td>
+                <button className="table-action" onClick={() => onSelect(row.feature)}>
+                  Check
+                </button>
+              </td>
+            )}
           </tr>
         ))}
       </tbody>
     </table>
+  );
+}
+
+function LiteratureEvidenceCard({ evidence }: { evidence: LiteratureEvidence }) {
+  return (
+    <div className="literature-card">
+      <div className="metric-grid">
+        <Metric label="Evidence" value={evidence.evidence_level} />
+        <Metric label="PubMed hits" value={evidence.total_hits} />
+        <Metric label="Reviewed" value={evidence.works_examined} />
+      </div>
+      <p className={evidence.status === "ok" ? "hash-line" : "warning-line"}>{evidence.summary}</p>
+      <p className="hash-line">Query: {evidence.query}</p>
+      {evidence.hits.length > 0 && (
+        <div className="literature-hits">
+          {evidence.hits.map((hit) => (
+            <a key={hit.url} href={hit.url} target="_blank" rel="noreferrer">
+              <strong>{hit.title}</strong>
+              <span>
+                {hit.journal} · {hit.year}
+                {hit.authors.length ? ` · ${hit.authors.join(", ")}` : ""}
+              </span>
+            </a>
+          ))}
+        </div>
+      )}
+      {evidence.caveats.map((caveat) => (
+        <p className="hash-line" key={caveat}>
+          {caveat}
+        </p>
+      ))}
+    </div>
   );
 }
 
