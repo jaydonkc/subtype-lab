@@ -4,6 +4,8 @@ SubtypeLab is easiest to publish as one Docker web service. The production Docke
 
 ## Recommended Hackathon Deployment: Render
 
+Live deployment: [https://subtype-lab.onrender.com/](https://subtype-lab.onrender.com/)
+
 1. Push this repository to GitHub.
 2. In Render, create a new Blueprint from the repository.
 3. Render will read `render.yaml` and create one Docker web service named `subtype-lab`.

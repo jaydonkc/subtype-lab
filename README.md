@@ -1,5 +1,7 @@
 # SubtypeLab
 
+[Live Render App](https://subtype-lab.onrender.com/) · [Deployment Guide](./DEPLOYMENT.md) · [Kiro Usage](./KIRO_USAGE.md)
+
 SubtypeLab is a local-first bioinformatics claim-auditing tool for cancer subtype and biomarker workflows. Given a gene-expression-style dataset and a claim like "these samples form three stable subtypes," the app runs deterministic stress tests and returns a verdict: `robust`, `suspicious`, or `fragile`.
 
 The project is built for the Kiro hackathon's **Intellectual Pursuit Track**. Kiro is used as the workflow-control layer through specs, steering docs, hooks, and an MCP server that exposes deterministic analysis tools.
@@ -27,7 +29,9 @@ The Docker path is the intended judge-facing setup. The first build may take a f
 
 ## Public Project URL
 
-For hackathon submission, deploy the repo as a single Docker web service. The backend Docker image builds the web UI and serves both the React app and FastAPI routes from one URL. See [DEPLOYMENT.md](./DEPLOYMENT.md).
+The functional Render deployment is [https://subtype-lab.onrender.com/](https://subtype-lab.onrender.com/).
+
+For hackathon submission, the repo is deployed as a single Docker web service. The backend Docker image builds the web UI and serves both the React app and FastAPI routes from one URL. See [DEPLOYMENT.md](./DEPLOYMENT.md).
 
 ## Local Development Without Docker
 
