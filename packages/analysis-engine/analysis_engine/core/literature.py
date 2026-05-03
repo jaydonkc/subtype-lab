@@ -52,6 +52,8 @@ def search_literature(marker: str, context: str = DEFAULT_CONTEXT, limit: int = 
     marker = clean_marker(marker)
     context = clean_context(context)
     limit = max(1, min(MAX_LIMIT, limit))
+    if is_synthetic_demo_marker(marker):
+        return synthetic_demo_evidence(marker, context)
     query = build_pubmed_query(marker, context)
 
     try:
@@ -104,6 +106,29 @@ def clean_context(context: str) -> str:
     words = re.findall(r"[A-Za-z0-9-]+", context or DEFAULT_CONTEXT)
     cleaned = " ".join(words[:12])
     return cleaned or DEFAULT_CONTEXT
+
+
+def is_synthetic_demo_marker(marker: str) -> bool:
+    return bool(re.fullmatch(r"GENE_\d{3}", marker))
+
+
+def synthetic_demo_evidence(marker: str, context: str) -> dict[str, Any]:
+    return LiteratureEvidence(
+        marker=marker,
+        context=context,
+        query="not run for synthetic demo feature",
+        source="SubtypeLab synthetic demo guardrail",
+        status="demo_only",
+        evidence_level="demo_synthetic",
+        total_hits=0,
+        works_examined=0,
+        summary=f"{marker} is a synthetic demo feature, not a real marker symbol. Public literature lookup was skipped.",
+        caveats=[
+            "Synthetic demo features are generated for reproducibility testing only.",
+            "Upload real marker names before using literature evidence for research triage.",
+        ],
+        hits=[],
+    ).payload()
 
 
 def build_pubmed_query(marker: str, context: str) -> str:

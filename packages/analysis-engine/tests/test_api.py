@@ -152,6 +152,20 @@ def test_literature_evidence_endpoint(monkeypatch: pytest.MonkeyPatch) -> None:
     assert payload["hits"][0]["url"].startswith("https://pubmed.ncbi.nlm.nih.gov/")
 
 
+def test_literature_evidence_skips_synthetic_demo_features() -> None:
+    response = client.post(
+        "/api/literature/evidence",
+        json={"marker": "GENE_073", "context": "cancer subtype biomarker", "limit": 3},
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["status"] == "demo_only"
+    assert payload["evidence_level"] == "demo_synthetic"
+    assert payload["total_hits"] == 0
+    assert "synthetic demo feature" in payload["summary"]
+
+
 def test_agent_findings_endpoint(monkeypatch: pytest.MonkeyPatch) -> None:
     def fake_build_agent_findings(result: dict) -> dict:
         assert result["verdict"] in {"robust", "suspicious", "fragile"}

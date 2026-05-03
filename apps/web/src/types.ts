@@ -153,8 +153,8 @@ export type LiteratureEvidence = {
   context: string;
   query: string;
   source: string;
-  status: "ok" | "unavailable";
-  evidence_level: "known" | "emerging" | "sparse" | "underexplored" | "unavailable";
+  status: "ok" | "unavailable" | "demo_only";
+  evidence_level: "known" | "emerging" | "sparse" | "underexplored" | "unavailable" | "demo_synthetic";
   total_hits: number;
   works_examined: number;
   summary: string;
