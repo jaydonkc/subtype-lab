@@ -294,17 +294,17 @@ Kiro hooks should enforce workflow quality:
 - Check that exported reports include dataset hash, method parameters, and artifact links.
 - Block claim reports that do not include a computed verdict and metric evidence.
 
-### Optional Kiro Power
+### Kiro Power
 
-If time allows, package the reusable Kiro side as a `BioKiro` power:
+The reusable Kiro side is packaged as a first-party `SubtypeLab` power:
 
 - `POWER.md`
 - `mcp.json`
-- steering templates
-- spec templates
-- hook scripts
+- research-agent steering
+- scientific guardrails
+- MCP access to deterministic analysis tools
 
-This would make the project feel Kiro-native instead of merely Kiro-built.
+This makes the project Kiro-native instead of merely Kiro-built: Kiro can activate the domain workflow, call the same MCP tools as the app, and keep scientific guardrails in context.
 
 ## Suggested Repo Shape
 
@@ -406,6 +406,5 @@ Pitch priority: explain how fragile claims waste research time, money, and follo
 - Choose first clustering method for MVP.
 - Choose first stability metric for MVP.
 - Choose the first claim verdict thresholds.
-- Decide whether the Kiro Power packaging is part of v1 or a stretch goal.
 - Decide deployment target or local-only submission path.
 - Decide exact one-command setup flow for judges.

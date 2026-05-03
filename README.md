@@ -90,12 +90,16 @@ Uploaded expression matrices should use rows as samples and columns as features.
 
 The repo keeps Kiro artifacts at the root:
 
+- `POWER.md`
+- `mcp.json`
 - `.kiro/specs/subtype-lab/requirements.md`
 - `.kiro/specs/subtype-lab/design.md`
 - `.kiro/specs/subtype-lab/tasks.md`
 - `.kiro/steering/*.md`
 - `.kiro/hooks/*.json`
 - `.kiro/settings/mcp.json`
+
+The repository root is also a custom Kiro Power. Install this repo from Kiro's Powers panel by GitHub URL or local path to load SubtypeLab's MCP tools and research-agent steering on demand.
 
 The MCP server exposes tools such as `inspect_dataset`, `run_subtyping`, `run_perturbation_suite`, `rank_robust_biomarkers`, `audit_biological_claim`, `explain_verdict`, `generate_agent_findings`, and `generate_reproducibility_report`. `inspect_dataset` can inspect the built-in demo dataset or a local CSV/TSV file path. `explain_verdict` is the Kiro-facing explanation layer: it summarizes computed audit evidence without changing the metric-derived verdict. `generate_agent_findings` turns computed audit metrics, marker robustness, artifact flags, and literature evidence into cautious research findings.
 

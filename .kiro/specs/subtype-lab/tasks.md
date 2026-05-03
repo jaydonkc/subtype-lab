@@ -89,7 +89,7 @@ Build SubtypeLab as a deterministic bioinformatics reproducibility workbench, no
 - [ ] Add metadata-aware batch diagnostics.
 - [ ] Add user-selectable perturbation budgets.
 - [ ] Add a richer browser report viewer.
-- [ ] Package Kiro steering, hooks, MCP settings, and spec template as a reusable Kiro Power.
+- [x] Package Kiro steering, MCP settings, and research-agent guardrails as a reusable Kiro Power.
 
 ## Notes
 

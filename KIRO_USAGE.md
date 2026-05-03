@@ -88,7 +88,16 @@ The research-agent findings panel adds the discovery layer: it reads the complet
 
 ## Kiro Powers
 
-No third-party Kiro Power is required for the MVP. A future extension would package the steering docs, hooks, MCP settings, and spec templates into a reusable BioKiro Power for other bioinformatics repositories.
+SubtypeLab now includes a first-party Kiro Power at the repository root:
+
+- `POWER.md`
+- `mcp.json`
+- `steering/scientific-guardrails.md`
+- `steering/research-agent-workflow.md`
+
+This lets the repo be installed from Kiro's Powers panel as a custom power. The power activates on bioinformatics, biomarker, cancer subtype, SNP, literature, perturbation, or reproducibility tasks and loads the same MCP server used by the local Kiro integration.
+
+The power does not make Kiro the scientific authority. It packages the guardrails and tools so Kiro can call deterministic analysis functions, generate Kiro-guided explanations, and produce research-agent findings from computed evidence.
 
 ## Why This Is Kiro-Native
 
