@@ -101,6 +101,6 @@ The power does not make Kiro the scientific authority. It packages the guardrail
 
 ## Why This Is Kiro-Native
 
-SubtypeLab is not just an app that was written with an AI assistant. The repo keeps Kiro artifacts at the root, uses Kiro specs as the implementation contract, uses steering docs to constrain scientific behavior, uses hooks for report/test validation, and exposes deterministic tools through MCP.
+The repo keeps Kiro artifacts at the root, uses Kiro specs as the implementation contract, uses steering docs to constrain scientific behavior, uses hooks for report/test validation, and exposes deterministic tools through MCP.
 
 The final product is a working web app, but the development workflow is intentionally Kiro-shaped.
