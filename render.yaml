@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: subtype-lab
+    runtime: docker
+    plan: free
+    dockerfilePath: ./packages/analysis-engine/Dockerfile
+    dockerContext: .
+    healthCheckPath: /healthz
+    autoDeployTrigger: commit
+    envVars:
+      - key: PYTHONUNBUFFERED
+        value: "1"
+      - key: ARTIFACT_ROOT
+        value: /app/artifacts

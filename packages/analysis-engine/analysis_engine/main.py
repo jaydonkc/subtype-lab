@@ -2,10 +2,13 @@ from __future__ import annotations
 
 from contextlib import asynccontextmanager
 from dataclasses import asdict
+import os
+from pathlib import Path
 
 from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse
+from fastapi.responses import FileResponse, HTMLResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from .core.claim import find_prohibited_terms, parse_claim
@@ -24,13 +27,24 @@ async def lifespan(_app: FastAPI):
 
 
 app = FastAPI(title="SubtypeLab Analysis Engine", version="0.1.0", lifespan=lifespan)
+web_dist_dir = Path(os.environ.get("WEB_DIST_DIR", "")).expanduser()
+web_index = web_dist_dir / "index.html"
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
+    allow_origins=[
+        origin.strip()
+        for origin in os.environ.get(
+            "CORS_ALLOW_ORIGINS",
+            "http://localhost:3000,http://localhost:3001,http://127.0.0.1:3000,http://127.0.0.1:3001",
+        ).split(",")
+        if origin.strip()
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+if (web_dist_dir / "assets").exists():
+    app.mount("/assets", StaticFiles(directory=web_dist_dir / "assets"), name="assets")
 
 datasets = DatasetRegistry()
 jobs = JobStore()
@@ -59,8 +73,10 @@ def healthz() -> dict[str, str]:
     return {"status": "ok"}
 
 
-@app.get("/")
-def root() -> dict[str, str]:
+@app.get("/", response_model=None)
+def root():
+    if web_index.exists():
+        return FileResponse(web_index)
     return {"name": "SubtypeLab", "status": "ready"}
 
 
@@ -269,3 +285,12 @@ def fetch_report_html(report_id: str) -> HTMLResponse:
 @app.get("/reports/{report_id}/html", response_class=HTMLResponse)
 def fetch_report_html_alias(report_id: str) -> HTMLResponse:
     return fetch_report_html(report_id)
+
+
+@app.get("/{path:path}", include_in_schema=False)
+def frontend_fallback(path: str) -> FileResponse:
+    if path.startswith(("api/", "datasets/", "analysis/", "claims/", "jobs/", "reports/", "literature/")):
+        raise HTTPException(status_code=404, detail="Not found")
+    if web_index.exists():
+        return FileResponse(web_index)
+    raise HTTPException(status_code=404, detail="Frontend build is not available.")

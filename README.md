@@ -25,6 +25,10 @@ WEB_PORT=3001 ANALYSIS_ENGINE_PORT=8001 docker compose up --build
 
 The Docker path is the intended judge-facing setup. The first build may take a few minutes while public base images and package dependencies are downloaded.
 
+## Public Project URL
+
+For hackathon submission, deploy the repo as a single Docker web service. The backend Docker image builds the web UI and serves both the React app and FastAPI routes from one URL. See [DEPLOYMENT.md](./DEPLOYMENT.md).
+
 ## Local Development Without Docker
 
 Backend:
