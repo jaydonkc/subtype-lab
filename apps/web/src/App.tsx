@@ -390,6 +390,7 @@ export function App() {
 
           {audit ? (
             <>
+              <AuditDecisionCard audit={audit} agentFindings={agentFindings} />
               <div className="metric-grid">
                 <Metric label="Verdict" value={audit.verdict} />
                 <Metric label="Stability" value={audit.stability_score.toFixed(3)} />
@@ -626,6 +627,91 @@ function ScoreBars({ scores }: { scores: Record<string, number> }) {
       ))}
     </div>
   );
+}
+
+function AuditDecisionCard({ audit, agentFindings }: { audit: AuditResult; agentFindings: AgentFindings | null }) {
+  const weakest = weakestPerturbation(audit.per_type_scores);
+  const artifactCount = audit.biomarkers.filter((marker) => marker.one_run_artifact).length;
+  const stableMarkers = audit.biomarkers.filter((marker) => !marker.one_run_artifact).slice(0, 3);
+  const decision = researchDecision(audit.verdict, artifactCount);
+  const agentFinding = agentFindings?.findings[0];
+
+  return (
+    <div className={`decision-panel ${audit.verdict}`}>
+      <div className="decision-header">
+        <span>Research decision</span>
+        <strong>{decision.title}</strong>
+        <p>{decision.body}</p>
+      </div>
+      <div className="decision-grid">
+        <div>
+          <span>What survived</span>
+          <strong>{audit.stability_score.toFixed(3)} stability</strong>
+          <p>
+            The subtype claim survived {Object.keys(audit.per_type_scores).length} stress-test classes.
+            {stableMarkers.length
+              ? ` Stable marker leads: ${stableMarkers.map((marker) => marker.feature).join(", ")}.`
+              : " Marker-level evidence still needs review."}
+          </p>
+        </div>
+        <div>
+          <span>What broke</span>
+          <strong>{artifactCount} artifact flags</strong>
+          <p>
+            {weakest
+              ? `${weakest.name.replaceAll("_", " ")} was the weakest perturbation at ${weakest.score.toFixed(3)}.`
+              : "No weak perturbation class was returned."}
+            {audit.warnings.length ? ` ${audit.warnings[0]}` : ""}
+          </p>
+        </div>
+        <div>
+          <span>Next validation step</span>
+          <strong>{decision.nextLabel}</strong>
+          <p>{agentFinding?.recommended_next_step ?? decision.nextStep}</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function researchDecision(verdict: AuditResult["verdict"], artifactCount: number) {
+  if (verdict === "fragile") {
+    return {
+      title: "Do not trust yet",
+      body: "The claim failed the stability threshold. Treat it as an unvalidated hypothesis.",
+      nextLabel: "Rework claim",
+      nextStep: "Inspect the weakest perturbation, revise preprocessing, and rerun before presenting the result.",
+    };
+  }
+  if (verdict === "suspicious") {
+    return {
+      title: "Investigate before claiming",
+      body: "The claim has partial support but did not clear the robust threshold.",
+      nextLabel: "Stress-test again",
+      nextStep: "Review perturbation failures and validate the claim on another cohort before using it in a research story.",
+    };
+  }
+  if (artifactCount > 0) {
+    return {
+      title: "Proceed with caution",
+      body: "The subtype claim is stable, but some downstream marker candidates are not reproducible enough yet.",
+      nextLabel: "Validate markers",
+      nextStep: "Keep the subtype claim as a lead, down-rank one-run artifacts, and validate stable markers in an independent cohort.",
+    };
+  }
+  return {
+    title: "Proceed to validation",
+    body: "The claim cleared the robust threshold and returned no marker artifact flags in the reviewed set.",
+    nextLabel: "External cohort",
+    nextStep: "Export the report and test the claim on an independent cohort before making a research claim.",
+  };
+}
+
+function weakestPerturbation(scores: Record<string, number>) {
+  const entries = Object.entries(scores);
+  if (!entries.length) return null;
+  const [name, score] = entries.reduce((weakest, current) => (current[1] < weakest[1] ? current : weakest));
+  return { name, score };
 }
 
 function KiroExplanationCard({ explanation }: { explanation: KiroVerdictExplanation }) {

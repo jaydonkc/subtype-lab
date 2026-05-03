@@ -368,6 +368,83 @@ textarea {
   background: #c0392b;
 }
 
+.decision-panel {
+  margin: 0 0 14px;
+  border: 1px solid #cbdde0;
+  border-radius: 8px;
+  background: #f7fbfa;
+  padding: 14px;
+}
+
+.decision-panel.robust {
+  border-color: #8fcab2;
+  background: #f1faf6;
+}
+
+.decision-panel.suspicious {
+  border-color: #e2c567;
+  background: #fffaf0;
+}
+
+.decision-panel.fragile {
+  border-color: #eda093;
+  background: #fff5f2;
+}
+
+.decision-header {
+  border-bottom: 1px solid rgba(23, 32, 38, 0.1);
+  padding-bottom: 12px;
+  margin-bottom: 12px;
+}
+
+.decision-header span,
+.decision-grid span {
+  display: block;
+  color: #17635a;
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+
+.decision-header strong {
+  display: block;
+  color: #172026;
+  font-size: 24px;
+  line-height: 1.15;
+  margin-bottom: 7px;
+}
+
+.decision-header p,
+.decision-grid p {
+  color: #52636c;
+  font-size: 13px;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.decision-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.decision-grid div {
+  min-width: 0;
+  border: 1px solid rgba(23, 32, 38, 0.08);
+  border-radius: 7px;
+  background: #ffffff;
+  padding: 10px;
+}
+
+.decision-grid strong {
+  display: block;
+  color: #172026;
+  font-size: 15px;
+  margin-bottom: 7px;
+  overflow-wrap: anywhere;
+}
+
 .kiro-explanation,
 .kiro-explanation-empty,
 .agent-findings,
@@ -633,6 +710,7 @@ th {
 
   .upload-box,
   .feature-summary-grid,
+  .decision-grid,
   .kiro-evidence-grid,
   .kiro-list-grid,
   .research-gap-strip,
