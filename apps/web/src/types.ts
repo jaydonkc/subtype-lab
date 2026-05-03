@@ -26,6 +26,14 @@ export type DatasetDescription = {
     columns: string[];
     values: Array<Array<string | number | null>>;
   } | null;
+  source?: {
+    name: string;
+    url: string;
+    doi?: string;
+    license?: string;
+    loaded_from?: string;
+    notes?: string;
+  } | null;
 };
 
 export type BaselineResult = {

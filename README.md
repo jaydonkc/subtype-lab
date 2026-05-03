@@ -71,7 +71,7 @@ python3 scripts/validate_report.py artifacts
 
 ## Demo Workflow
 
-1. Load the synthetic demo dataset, or upload a CSV/TSV expression matrix with optional sample metadata.
+1. Load the synthetic demo dataset, load the UCI WDBC real public dataset, or upload a CSV/TSV expression matrix with optional sample metadata.
 2. Review quality metrics, warning flags, feature summaries, dataset hash, and the preview heatmap.
 3. Select or edit the claim: "These samples form three stable subtypes."
 4. Run the baseline analysis.
@@ -80,7 +80,7 @@ python3 scripts/validate_report.py artifacts
 7. Review the stability verdict, perturbation scores, biomarker table, warnings, and exported report path.
 8. Download the JSON or HTML reproducibility report.
 
-The synthetic dataset is deterministic and contains no real patient data.
+The synthetic dataset is deterministic and contains no real patient data. The UCI WDBC option loads the public Breast Cancer Wisconsin Diagnostic benchmark: 569 samples and 30 numeric morphology features from digitized breast FNA images. It is licensed CC BY 4.0 and is not gene-expression data.
 
 Expected demo story:
 

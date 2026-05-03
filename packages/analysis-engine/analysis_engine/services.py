@@ -14,6 +14,7 @@ from .core.dataset import DatasetRecord, compute_quality_metrics, dataframe_payl
 from .core.demo_data import generate_demo_dataset
 from .core.normalization import normalize
 from .core.perturbation import run_perturbation_suite
+from .core.real_data import load_wdbc_dataset
 from .core.report import find_report, find_report_html, generate_report
 from .core.verdict import compute_verdict
 from .core.visualization import heatmap_payload
@@ -33,6 +34,18 @@ class DatasetRegistry:
         self._datasets[record.dataset_id] = record
         return record
 
+    def load_wdbc(self) -> DatasetRecord:
+        public_dataset = load_wdbc_dataset()
+        return self.add(
+            DatasetRecord(
+                public_dataset.dataset_id,
+                public_dataset.dataset_hash,
+                public_dataset.matrix,
+                public_dataset.metadata,
+                source=public_dataset.source,
+            )
+        )
+
     def get(self, dataset_id: str) -> DatasetRecord:
         if dataset_id not in self._datasets:
             raise KeyError(f"Unknown dataset_id: {dataset_id}")
@@ -47,6 +60,7 @@ class DatasetRegistry:
             "quality": asdict(metrics),
             "preview": dataframe_payload(record.matrix, max_rows=8),
             "metadata": dataframe_payload(record.metadata, max_rows=8) if record.metadata is not None else None,
+            "source": record.source,
         }
 
 

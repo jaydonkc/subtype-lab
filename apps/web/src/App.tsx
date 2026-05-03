@@ -9,6 +9,7 @@ import {
   getReport,
   getReportHtml,
   loadDemoDataset,
+  loadWdbcDataset,
   runBaseline,
   startAudit,
   uploadDataset,
@@ -104,6 +105,26 @@ export function App() {
       setAgentFindings(null);
       setKiroExplanation(null);
       setReport(null);
+    } catch (err) {
+      setError(errorMessage(err));
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleLoadWdbc() {
+    setError(null);
+    setLoading(true);
+    try {
+      setDataset(await loadWdbcDataset());
+      setClaim("These samples form 2 stable clusters.");
+      setLiteratureContext("breast cancer morphology feature");
+      setBaseline(null);
+      setAudit(null);
+      setAgentFindings(null);
+      setKiroExplanation(null);
+      setReport(null);
+      setStatus(null);
     } catch (err) {
       setError(errorMessage(err));
     } finally {
@@ -278,6 +299,9 @@ export function App() {
           <button className="primary-action" disabled={loading} onClick={handleLoadDemo}>
             Load synthetic demo dataset
           </button>
+          <button disabled={loading} onClick={handleLoadWdbc}>
+            Load UCI WDBC real dataset
+          </button>
           <div className="upload-box">
             <label>
               <span>Expression matrix</span>
@@ -307,6 +331,11 @@ export function App() {
                 <Metric label="Missing" value={`${dataset.quality.missing_value_percentage.toFixed(1)}%`} />
               </div>
               <p className="hash-line">Dataset hash: {dataset.dataset_hash.slice(0, 18)}...</p>
+              {dataset.source && (
+                <p className="hash-line">
+                  {`${dataset.source.name} (${dataset.source.license ?? "public dataset"}; ${dataset.source.loaded_from?.replaceAll("_", " ") ?? "loaded"}). ${dataset.source.notes ?? ""}`}
+                </p>
+              )}
               {dataset.metadata && (
                 <p className="hash-line">
                   {`Metadata attached for ${dataset.quality.sample_count} samples; showing ${dataset.metadata.index.length}-row preview with ${dataset.metadata.columns.length} fields.`}

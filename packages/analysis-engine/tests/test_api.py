@@ -21,6 +21,21 @@ def test_demo_dataset_endpoint() -> None:
     assert data["quality"]["feature_count"] == 300
 
 
+def test_wdbc_dataset_endpoint(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr("analysis_engine.core.real_data.fetch_wdbc_data", lambda: (_ for _ in ()).throw(RuntimeError("offline")))
+
+    response = client.get("/api/datasets/wdbc")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["dataset_id"] == "wdbc"
+    assert data["quality"]["sample_count"] == 569
+    assert data["quality"]["feature_count"] == 30
+    assert data["source"]["license"] == "CC BY 4.0"
+    assert data["source"]["loaded_from"] == "bundled_snapshot"
+    assert data["metadata"]["columns"] == ["diagnosis_label", "dataset_source"]
+
+
 def test_spec_route_aliases() -> None:
     response = client.post("/datasets/demo")
     assert response.status_code == 200

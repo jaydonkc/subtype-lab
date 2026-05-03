@@ -39,7 +39,7 @@ def parse_claim(text: str) -> ParsedClaim:
     normalized = text.strip()
     lower = normalized.lower()
 
-    subtype_match = re.search(r"(\d+)\s+(?:stable\s+)?subtypes?", lower)
+    subtype_match = re.search(r"(\d+)\s+(?:stable\s+)?(?:subtypes?|clusters?)", lower)
     if "subtype" in lower or "cluster" in lower:
         subtype_count = int(subtype_match.group(1)) if subtype_match else 3
         return ParsedClaim("subtype-count", subtype_count, normalized)

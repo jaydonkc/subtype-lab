@@ -15,6 +15,7 @@ class DatasetRecord:
     matrix: pd.DataFrame
     metadata: pd.DataFrame | None = None
     warnings: list[str] = field(default_factory=list)
+    source: dict[str, str] | None = None
 
 
 @dataclass(frozen=True)
@@ -91,6 +92,7 @@ def attach_metadata(record: DatasetRecord, metadata: pd.DataFrame) -> DatasetRec
         matrix=record.matrix,
         metadata=aligned,
         warnings=record.warnings,
+        source=record.source,
     )
 
 

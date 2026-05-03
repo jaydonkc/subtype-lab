@@ -92,6 +92,19 @@ def post_demo_dataset() -> dict:
     return datasets.describe("demo")
 
 
+@app.get("/api/datasets/wdbc")
+def get_wdbc_dataset() -> dict:
+    try:
+        return datasets.describe("wdbc")
+    except KeyError:
+        return datasets.describe(datasets.load_wdbc().dataset_id)
+
+
+@app.post("/datasets/wdbc")
+def post_wdbc_dataset() -> dict:
+    return get_wdbc_dataset()
+
+
 @app.post("/api/datasets/upload")
 async def upload_dataset(
     file: UploadFile = File(...),

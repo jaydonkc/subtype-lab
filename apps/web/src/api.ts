@@ -32,6 +32,10 @@ export function loadDemoDataset(): Promise<DatasetDescription> {
   return request<DatasetDescription>("/api/datasets/demo");
 }
 
+export function loadWdbcDataset(): Promise<DatasetDescription> {
+  return request<DatasetDescription>("/api/datasets/wdbc");
+}
+
 export async function uploadDataset(file: File, metadataFile?: File | null): Promise<DatasetDescription> {
   const body = new FormData();
   body.append("file", file);
