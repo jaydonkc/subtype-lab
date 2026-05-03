@@ -97,7 +97,7 @@ The repo keeps Kiro artifacts at the root:
 - `.kiro/hooks/*.json`
 - `.kiro/settings/mcp.json`
 
-The MCP server exposes tools such as `inspect_dataset`, `run_subtyping`, `run_perturbation_suite`, `rank_robust_biomarkers`, `audit_biological_claim`, and `generate_reproducibility_report`. `inspect_dataset` can inspect the built-in demo dataset or a local CSV/TSV file path.
+The MCP server exposes tools such as `inspect_dataset`, `run_subtyping`, `run_perturbation_suite`, `rank_robust_biomarkers`, `audit_biological_claim`, `explain_verdict`, `generate_agent_findings`, and `generate_reproducibility_report`. `inspect_dataset` can inspect the built-in demo dataset or a local CSV/TSV file path. `explain_verdict` is the Kiro-facing explanation layer: it summarizes computed audit evidence without changing the metric-derived verdict. `generate_agent_findings` turns computed audit metrics, marker robustness, artifact flags, and literature evidence into cautious research findings.
 
 See [KIRO_USAGE.md](./KIRO_USAGE.md) for the submission writeup.
 

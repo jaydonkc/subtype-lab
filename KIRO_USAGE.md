@@ -76,9 +76,15 @@ It exposes deterministic tools:
 - `run_perturbation_suite`
 - `rank_robust_biomarkers`
 - `audit_biological_claim`
+- `explain_verdict`
+- `generate_agent_findings`
 - `generate_reproducibility_report`
 
 MCP is the key Kiro feature for this project. It lets Kiro call real bioinformatics functions instead of producing freeform analysis prose. For example, Kiro can inspect the synthetic demo dataset or a local CSV/TSV file path, run deterministic subtyping, execute the perturbation suite, rank biomarkers, and generate reports. This makes the system auditable: Kiro can orchestrate and explain, but the verdict comes from code.
+
+The web app also exposes this split directly after an audit. A Kiro explanation card summarizes the completed audit artifact, names the threshold used, highlights the weakest perturbation, and lists next checks. The card is Kiro-shaped explanation, not a second verdict engine.
+
+The research-agent findings panel adds the discovery layer: it reads the completed audit artifact, checks top markers against PubMed evidence levels, computes a research-gap score, and returns cautious findings such as known robust markers, underexplored robust candidates, weak stress-test areas, or artifact risks. If `OPENAI_API_KEY` is configured, the same evidence snapshot can be passed through structured AI generation; without a key, the deployed demo uses the deterministic local agent fallback.
 
 ## Kiro Powers
 

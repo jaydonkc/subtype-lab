@@ -11,9 +11,11 @@ from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
+from .core.agent_findings import build_agent_findings
 from .core.claim import find_prohibited_terms, parse_claim
 from .core.dataset import attach_metadata, compute_quality_metrics, parse_dataset, parse_metadata
 from .core.demo_data import save_demo_data
+from .core.kiro_explanation import build_kiro_verdict_explanation
 from .core.literature import search_literature
 from .jobs.executor import AuditExecutor
 from .jobs.store import JobStore
@@ -235,6 +237,28 @@ def job_result(job_id: str) -> dict:
     return job_artifacts(job_id)
 
 
+@app.get("/api/jobs/{job_id}/kiro-explanation")
+def job_kiro_explanation(job_id: str) -> dict:
+    try:
+        job = jobs.get(job_id)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    if job.state != "completed" or not job.result:
+        raise HTTPException(status_code=409, detail="Job is not complete yet.")
+    return build_kiro_verdict_explanation(job.result)
+
+
+@app.get("/api/jobs/{job_id}/agent-findings")
+def job_agent_findings(job_id: str) -> dict:
+    try:
+        job = jobs.get(job_id)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    if job.state != "completed" or not job.result:
+        raise HTTPException(status_code=409, detail="Job is not complete yet.")
+    return build_agent_findings(job.result)
+
+
 @app.get("/jobs/{job_id}/result")
 def job_result_alias(job_id: str) -> dict:
     return job_artifacts(job_id)
@@ -243,6 +267,16 @@ def job_result_alias(job_id: str) -> dict:
 @app.get("/jobs/{job_id}/artifacts")
 def job_artifacts_alias(job_id: str) -> dict:
     return job_artifacts(job_id)
+
+
+@app.get("/jobs/{job_id}/kiro-explanation")
+def job_kiro_explanation_alias(job_id: str) -> dict:
+    return job_kiro_explanation(job_id)
+
+
+@app.get("/jobs/{job_id}/agent-findings")
+def job_agent_findings_alias(job_id: str) -> dict:
+    return job_agent_findings(job_id)
 
 
 @app.post("/api/reports/generate")
@@ -289,7 +323,7 @@ def fetch_report_html_alias(report_id: str) -> HTMLResponse:
 
 @app.get("/{path:path}", include_in_schema=False)
 def frontend_fallback(path: str) -> FileResponse:
-    if path.startswith(("api/", "datasets/", "analysis/", "claims/", "jobs/", "reports/", "literature/")):
+    if path.startswith(("api/", "datasets/", "analysis/", "claims/", "jobs/", "reports/", "literature/", "kiro/")):
         raise HTTPException(status_code=404, detail="Not found")
     if web_index.exists():
         return FileResponse(web_index)

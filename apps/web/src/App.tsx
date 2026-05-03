@@ -2,7 +2,9 @@ import { useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import {
   getAuditResult,
+  getAgentFindings,
   getJobStatus,
+  getKiroExplanation,
   getLiteratureEvidence,
   getReport,
   getReportHtml,
@@ -12,11 +14,13 @@ import {
   uploadDataset,
 } from "./api";
 import type {
+  AgentFindings,
   AuditResult,
   BaselineResult,
   BiomarkerRank,
   DatasetDescription,
   JobStatus,
+  KiroVerdictExplanation,
   LiteratureEvidence,
   ReproducibilityReport,
 } from "./types";
@@ -44,6 +48,8 @@ export function App() {
   const [baseline, setBaseline] = useState<BaselineResult | null>(null);
   const [status, setStatus] = useState<JobStatus | null>(null);
   const [audit, setAudit] = useState<AuditResult | null>(null);
+  const [agentFindings, setAgentFindings] = useState<AgentFindings | null>(null);
+  const [kiroExplanation, setKiroExplanation] = useState<KiroVerdictExplanation | null>(null);
   const [report, setReport] = useState<ReproducibilityReport | null>(null);
   const [expressionFile, setExpressionFile] = useState<File | null>(null);
   const [metadataFile, setMetadataFile] = useState<File | null>(null);
@@ -51,6 +57,8 @@ export function App() {
   const [literatureContext, setLiteratureContext] = useState("cancer subtype biomarker");
   const [literature, setLiterature] = useState<LiteratureEvidence | null>(null);
   const [literatureLoading, setLiteratureLoading] = useState(false);
+  const [agentFindingsLoading, setAgentFindingsLoading] = useState(false);
+  const [kiroLoading, setKiroLoading] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -70,6 +78,8 @@ export function App() {
         if (next.state === "completed") {
           const result = await getAuditResult(next.job_id);
           setAudit(result);
+          void handleKiroExplanation(next.job_id);
+          void handleAgentFindings(next.job_id);
         }
       } catch (err) {
         setError(errorMessage(err));
@@ -91,6 +101,8 @@ export function App() {
       setDataset(await loadDemoDataset());
       setBaseline(null);
       setAudit(null);
+      setAgentFindings(null);
+      setKiroExplanation(null);
       setReport(null);
     } catch (err) {
       setError(errorMessage(err));
@@ -110,6 +122,8 @@ export function App() {
       setDataset(await uploadDataset(expressionFile, metadataFile));
       setBaseline(null);
       setAudit(null);
+      setAgentFindings(null);
+      setKiroExplanation(null);
       setReport(null);
       setStatus(null);
     } catch (err) {
@@ -130,6 +144,8 @@ export function App() {
   async function handleBaseline() {
     setError(null);
     setAudit(null);
+    setAgentFindings(null);
+    setKiroExplanation(null);
     setReport(null);
     setStatus(null);
     setLoading(true);
@@ -146,6 +162,8 @@ export function App() {
   async function handleAudit() {
     setError(null);
     setAudit(null);
+    setAgentFindings(null);
+    setKiroExplanation(null);
     setReport(null);
     setLoading(true);
     try {
@@ -189,6 +207,30 @@ export function App() {
       downloadText(`${reportId}.html`, html, "text/html");
     } catch (err) {
       setError(errorMessage(err));
+    }
+  }
+
+  async function handleKiroExplanation(jobId = status?.job_id) {
+    if (!jobId) return;
+    setKiroLoading(true);
+    try {
+      setKiroExplanation(await getKiroExplanation(jobId));
+    } catch (err) {
+      setError(errorMessage(err));
+    } finally {
+      setKiroLoading(false);
+    }
+  }
+
+  async function handleAgentFindings(jobId = status?.job_id) {
+    if (!jobId) return;
+    setAgentFindingsLoading(true);
+    try {
+      setAgentFindings(await getAgentFindings(jobId));
+    } catch (err) {
+      setError(errorMessage(err));
+    } finally {
+      setAgentFindingsLoading(false);
     }
   }
 
@@ -357,6 +399,30 @@ export function App() {
                 <p key={warning} className="warning-line">{warning}</p>
               ))}
               <ScoreBars scores={audit.per_type_scores} />
+              {kiroExplanation ? (
+                <KiroExplanationCard explanation={kiroExplanation} />
+              ) : (
+                <div className="kiro-explanation-empty">
+                  <p className="placeholder">
+                    Kiro can explain this verdict from the computed audit evidence without changing it.
+                  </p>
+                  <button disabled={kiroLoading || !status?.job_id} onClick={() => void handleKiroExplanation()}>
+                    {kiroLoading ? "Generating..." : "Generate Kiro explanation"}
+                  </button>
+                </div>
+              )}
+              {agentFindings ? (
+                <AgentFindingsCard findings={agentFindings} />
+              ) : (
+                <div className="agent-findings-empty">
+                  <p className="placeholder">
+                    The research agent can convert the completed audit into evidence-backed findings.
+                  </p>
+                  <button disabled={agentFindingsLoading || !status?.job_id} onClick={() => void handleAgentFindings()}>
+                    {agentFindingsLoading ? "Generating..." : "Generate agent findings"}
+                  </button>
+                </div>
+              )}
               <BiomarkerTable biomarkers={audit.biomarkers} onSelect={handleSelectBiomarker} />
               {audit.report.paths?.json && (
                 <p className="hash-line">Report: {audit.report.paths.json}</p>
@@ -558,6 +624,110 @@ function ScoreBars({ scores }: { scores: Record<string, number> }) {
           <strong>{score.toFixed(3)}</strong>
         </div>
       ))}
+    </div>
+  );
+}
+
+function KiroExplanationCard({ explanation }: { explanation: KiroVerdictExplanation }) {
+  return (
+    <div className="kiro-explanation">
+      <div>
+        <span className="kiro-label">Kiro explanation</span>
+        <h3>{explanation.headline}</h3>
+        <p>{explanation.summary}</p>
+      </div>
+      <div className="kiro-evidence-grid">
+        {explanation.evidence.map((item) => (
+          <div key={item.label}>
+            <span>{item.label}</span>
+            <strong>{item.value}</strong>
+            <p>{item.interpretation}</p>
+          </div>
+        ))}
+      </div>
+      <div className="kiro-list-grid">
+        <div>
+          <h4>Reasoning path</h4>
+          <ul>
+            {explanation.reasoning_steps.map((step) => (
+              <li key={step}>{step}</li>
+            ))}
+          </ul>
+        </div>
+        <div>
+          <h4>Next checks</h4>
+          <ul>
+            {explanation.next_steps.map((step) => (
+              <li key={step}>{step}</li>
+            ))}
+          </ul>
+        </div>
+      </div>
+      <p className="hash-line">
+        Kiro role: {explanation.kiro_role}. Verdict source: {explanation.verdict_source.replaceAll("_", " ")}.
+      </p>
+    </div>
+  );
+}
+
+function AgentFindingsCard({ findings }: { findings: AgentFindings }) {
+  const markerEvidence = findings.evidence_snapshot?.marker_evidence ?? [];
+  return (
+    <div className="agent-findings">
+      <div>
+        <span className="agent-label">Research agent</span>
+        <h3>{findings.headline}</h3>
+        <p>{findings.executive_summary}</p>
+        <p className="hash-line">
+          Mode: {findings.mode.replaceAll("_", " ")} · Provider: {findings.provider} · Model: {findings.model}
+        </p>
+      </div>
+      <div className="agent-finding-list">
+        {findings.findings.map((finding) => (
+          <article key={`${finding.finding_type}-${finding.title}`}>
+            <div>
+              <span>{finding.finding_type.replaceAll("_", " ")}</span>
+              <strong>{finding.confidence}</strong>
+            </div>
+            <h4>{finding.title}</h4>
+            <p>{finding.evidence}</p>
+            <p>{finding.interpretation}</p>
+            <p className="hash-line">Next: {finding.recommended_next_step}</p>
+          </article>
+        ))}
+      </div>
+      {markerEvidence.length > 0 && (
+        <div className="research-gap-strip">
+          {markerEvidence.slice(0, 5).map((marker) => (
+            <div key={marker.feature}>
+              <span>{marker.feature}</span>
+              <strong>{marker.research_gap_score}/100</strong>
+              <small>{marker.literature.evidence_level}</small>
+            </div>
+          ))}
+        </div>
+      )}
+      <details className="agent-trace">
+        <summary>Agent trace and guardrails</summary>
+        <div className="kiro-list-grid">
+          <div>
+            <h4>Trace</h4>
+            <ul>
+              {findings.agent_trace.map((step) => (
+                <li key={step}>{step}</li>
+              ))}
+            </ul>
+          </div>
+          <div>
+            <h4>Guardrails</h4>
+            <ul>
+              {findings.guardrails.map((guardrail) => (
+                <li key={guardrail}>{guardrail}</li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </details>
     </div>
   );
 }

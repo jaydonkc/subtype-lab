@@ -93,6 +93,61 @@ export type ReproducibilityReport = {
   top_biomarkers: BiomarkerRank[];
 };
 
+export type KiroVerdictExplanation = {
+  mode: "kiro_guided_explanation";
+  verdict_source: "computed_metrics";
+  kiro_role: string;
+  headline: string;
+  summary: string;
+  threshold_used: string;
+  evidence: Array<{
+    label: string;
+    value: string;
+    interpretation: string;
+  }>;
+  reasoning_steps: string[];
+  guardrails: string[];
+  warnings: string[];
+  next_steps: string[];
+};
+
+export type AgentFinding = {
+  title: string;
+  finding_type: "claim" | "marker" | "research_gap" | "risk";
+  confidence: "high" | "medium" | "low";
+  evidence: string;
+  interpretation: string;
+  recommended_next_step: string;
+};
+
+export type AgentFindings = {
+  mode: "deterministic_agent" | "agentic_ai";
+  provider: string;
+  model: string;
+  headline: string;
+  executive_summary: string;
+  findings: AgentFinding[];
+  agent_trace: string[];
+  guardrails: string[];
+  warnings: string[];
+  evidence_snapshot: {
+    marker_evidence: Array<{
+      feature: string;
+      robustness_score: number;
+      baseline_score: number;
+      one_run_artifact: boolean;
+      research_gap_score: number;
+      literature: {
+        status: string;
+        evidence_level: string;
+        total_hits: number;
+        summary: string;
+        top_titles: string[];
+      };
+    }>;
+  };
+};
+
 export type LiteratureEvidence = {
   marker: string;
   context: string;

@@ -1,8 +1,10 @@
 import type {
+  AgentFindings,
   AuditResult,
   BaselineResult,
   DatasetDescription,
   JobStatus,
+  KiroVerdictExplanation,
   LiteratureEvidence,
   ReproducibilityReport,
 } from "./types";
@@ -84,6 +86,14 @@ export function getJobStatus(jobId: string): Promise<JobStatus> {
 export async function getAuditResult(jobId: string): Promise<AuditResult> {
   const payload = await request<{ result: AuditResult }>(`/api/jobs/${jobId}/artifacts`);
   return payload.result;
+}
+
+export function getKiroExplanation(jobId: string): Promise<KiroVerdictExplanation> {
+  return request<KiroVerdictExplanation>(`/api/jobs/${jobId}/kiro-explanation`);
+}
+
+export function getAgentFindings(jobId: string): Promise<AgentFindings> {
+  return request<AgentFindings>(`/api/jobs/${jobId}/agent-findings`);
 }
 
 export function getReport(reportId: string): Promise<ReproducibilityReport> {

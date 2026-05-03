@@ -10,7 +10,9 @@ if str(ENGINE_PATH) not in sys.path:
     sys.path.insert(0, str(ENGINE_PATH))
 
 from analysis_engine.core.claim import parse_claim  # noqa: E402
+from analysis_engine.core.agent_findings import build_agent_findings  # noqa: E402
 from analysis_engine.core.dataset import compute_quality_metrics, parse_dataset  # noqa: E402
+from analysis_engine.core.kiro_explanation import build_kiro_verdict_explanation  # noqa: E402
 from analysis_engine.core.normalization import normalize  # noqa: E402
 from analysis_engine.services import DatasetRegistry, run_baseline_analysis, run_claim_audit  # noqa: E402
 
@@ -110,6 +112,30 @@ def audit_biological_claim(
         "warnings": result["warnings"],
         "report_paths": result["report"].get("paths", {}),
     }
+
+
+def explain_verdict(
+    claim_text: str,
+    dataset_id: str = "demo",
+    normalization_variant: str = "z-score",
+    seed: int = 42,
+) -> dict[str, Any]:
+    parse_claim(claim_text)
+    dataset = _datasets.get(dataset_id)
+    result = run_claim_audit(dataset, claim_text, normalization_variant, seed)
+    return build_kiro_verdict_explanation(result)
+
+
+def generate_agent_findings(
+    claim_text: str,
+    dataset_id: str = "demo",
+    normalization_variant: str = "z-score",
+    seed: int = 42,
+) -> dict[str, Any]:
+    parse_claim(claim_text)
+    dataset = _datasets.get(dataset_id)
+    result = run_claim_audit(dataset, claim_text, normalization_variant, seed)
+    return build_agent_findings(result)
 
 
 def generate_reproducibility_report(

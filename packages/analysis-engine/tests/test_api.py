@@ -80,6 +80,13 @@ def test_report_endpoint_after_audit_job() -> None:
     result = client.get(f"/jobs/{job_id}/result").json()["result"]
     report_id = result["report"]["report_id"]
 
+    explanation = client.get(f"/api/jobs/{job_id}/kiro-explanation")
+    assert explanation.status_code == 200
+    explanation_payload = explanation.json()
+    assert explanation_payload["mode"] == "kiro_guided_explanation"
+    assert explanation_payload["verdict_source"] == "computed_metrics"
+    assert "computed" in explanation_payload["evidence"][0]["value"]
+
     report = client.get(f"/api/reports/{report_id}")
     assert report.status_code == 200
     assert report.json()["report_id"] == report_id
@@ -143,3 +150,56 @@ def test_literature_evidence_endpoint(monkeypatch: pytest.MonkeyPatch) -> None:
     assert payload["evidence_level"] == "known"
     assert payload["total_hits"] == 42
     assert payload["hits"][0]["url"].startswith("https://pubmed.ncbi.nlm.nih.gov/")
+
+
+def test_agent_findings_endpoint(monkeypatch: pytest.MonkeyPatch) -> None:
+    def fake_build_agent_findings(result: dict) -> dict:
+        assert result["verdict"] in {"robust", "suspicious", "fragile"}
+        return {
+            "mode": "deterministic_agent",
+            "provider": "local",
+            "model": "rules+literature",
+            "headline": "Research agent findings: robust claim.",
+            "executive_summary": "Evidence-grounded summary.",
+            "findings": [
+                {
+                    "title": "Subtype claim is robust",
+                    "finding_type": "claim",
+                    "confidence": "high",
+                    "evidence": "Computed stability score is high.",
+                    "interpretation": "The agent summarized deterministic evidence.",
+                    "recommended_next_step": "Validate in an independent cohort.",
+                }
+            ],
+            "agent_trace": ["Read completed audit artifact."],
+            "guardrails": ["No clinical claims."],
+            "warnings": [],
+            "evidence_snapshot": {"marker_evidence": []},
+        }
+
+    monkeypatch.setattr("analysis_engine.main.build_agent_findings", fake_build_agent_findings)
+    response = client.post(
+        "/analysis/audit",
+        json={
+            "dataset_id": "demo",
+            "claim_text": "These samples form three stable subtypes.",
+            "normalization_variant": "z-score",
+        },
+    )
+    assert response.status_code == 202
+    job_id = response.json()["job_id"]
+
+    status = {}
+    for _ in range(30):
+        status = client.get(f"/jobs/{job_id}/status").json()
+        if status["state"] == "completed":
+            break
+        time.sleep(0.05)
+
+    assert status["state"] == "completed"
+    response = client.get(f"/api/jobs/{job_id}/agent-findings")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["mode"] == "deterministic_agent"
+    assert payload["findings"][0]["finding_type"] == "claim"

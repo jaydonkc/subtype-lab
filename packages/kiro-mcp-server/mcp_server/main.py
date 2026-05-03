@@ -78,6 +78,30 @@ def audit_biological_claim(
 
 
 @mcp.tool()
+def explain_verdict(
+    claim_text: str,
+    dataset_id: str = "demo",
+    normalization_variant: str = "z-score",
+    seed: int = 42,
+) -> dict:
+    """Generate a Kiro-guided explanation from computed audit metrics."""
+
+    return tools.explain_verdict(claim_text, dataset_id, normalization_variant, seed)
+
+
+@mcp.tool()
+def generate_agent_findings(
+    claim_text: str,
+    dataset_id: str = "demo",
+    normalization_variant: str = "z-score",
+    seed: int = 42,
+) -> dict:
+    """Generate research-agent findings from computed audit evidence."""
+
+    return tools.generate_agent_findings(claim_text, dataset_id, normalization_variant, seed)
+
+
+@mcp.tool()
 def generate_reproducibility_report(
     claim_text: str = "These samples form three stable subtypes.",
     dataset_id: str = "demo",
