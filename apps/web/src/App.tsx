@@ -309,7 +309,7 @@ export function App() {
               <p className="hash-line">Dataset hash: {dataset.dataset_hash.slice(0, 18)}...</p>
               {dataset.metadata && (
                 <p className="hash-line">
-                  Metadata: {dataset.metadata.index.length} samples with {dataset.metadata.columns.length} fields.
+                  {`Metadata attached for ${dataset.quality.sample_count} samples; showing ${dataset.metadata.index.length}-row preview with ${dataset.metadata.columns.length} fields.`}
                 </p>
               )}
               <QualityDetails quality={dataset.quality} />
